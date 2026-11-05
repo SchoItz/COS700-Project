@@ -1,0 +1,90 @@
+/* Design tokens: the University of Pretoria (Tuks) palette.
+ *
+ * Every colour in the app -- CSS and charts (theme/chart.ts) -- comes from
+ * here, so changing a value restyles the whole dashboard. Light is the
+ * default; dark follows the OS unless the user picks one with the toggle
+ * (theme/useTheme.ts sets data-theme on <html>). */
+
+:root {
+  /* Brand */
+  --up-blue: #005eb8;
+  --up-blue-deep: #0a3d7a;
+  --up-navy: #00234b;
+  --up-red: #e31937;
+  --up-gold: #b8975a;
+
+  /* Surfaces and text */
+  --bg: #f3f6fa;
+  --surface: #ffffff;
+  --surface-2: #eef3f9;
+  --border: #d8e0eb;
+  --border-strong: #b9c6d8;
+  --text: #102238;
+  --text-muted: #56677f;
+
+  /* Roles */
+  --accent: var(--up-blue);
+  --accent-hover: var(--up-blue-deep);
+  --accent-contrast: #ffffff;
+  --accent-soft: rgba(0, 94, 184, 0.1);
+  --good: #1a7f47;
+  --good-soft: rgba(26, 127, 71, 0.12);
+  --bad: #c8102e;
+  --bad-soft: rgba(200, 16, 46, 0.1);
+  --warn: #8a6a1f;
+  --warn-soft: rgba(184, 151, 90, 0.18);
+  --info-soft: #e1eefb; /* light blue: summary boxes (Findings, "Summary" on Results) */
+
+  /* Header band (always UP navy, both themes) */
+  --header-bg: var(--up-navy);
+  --header-text: #ffffff;
+  --header-muted: #b9c9e0;
+
+  /* Shape */
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px rgba(16, 34, 56, 0.06), 0 4px 16px rgba(16, 34, 56, 0.06);
+  --shadow-lg: 0 12px 32px rgba(16, 34, 56, 0.18);
+  --content-width: 1160px;
+
+
+  /* Chart series, in fixed order (validated: dataviz validate_palette.js) */
+  --chart-1: #005eb8;
+  --chart-2: #a8803a;
+  --chart-3: #d0102f;
+  --chart-4: #1a7f47;
+
+  --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0a1424;
+  --surface: #101e34;
+  --surface-2: #162843;
+  --border: #22385a;
+  --border-strong: #2f4a73;
+  --text: #e8eef7;
+  --text-muted: #9caec8;
+  --accent: #4d9bea;
+  --accent-hover: #79b4f0;
+  --accent-contrast: #06162b;
+  --accent-soft: rgba(77, 155, 234, 0.16);
+  --good: #4cc38a;
+  --good-soft: rgba(76, 195, 138, 0.15);
+  --bad: #ff5c72;
+  --bad-soft: rgba(255, 92, 114, 0.14);
+  --warn: #e2c27d;
+  --warn-soft: rgba(226, 194, 125, 0.15);
+  --info-soft: rgba(77, 155, 234, 0.16);
+  --header-bg: #061226;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --chart-1: #3d8ae0;
+  --chart-2: #b88c24;
+  --chart-3: #d0304a;
+  --chart-4: #27a56f;
+  color-scheme: dark;
+}

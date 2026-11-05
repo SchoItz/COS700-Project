@@ -1,0 +1,24 @@
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Strategy & \multicolumn{2}{c}{Single-day snapshot} & \multicolumn{2}{c}{Multi-day temporal} \\
+ & F1 & FPR & F1 & FPR \\
+\midrule
+Decision tree & 0.854 & 0.0099 & 0.827 & 0.0110 \\
+Isolation forest & 0.458 & 0.0262 & 0.481 & 0.0149 \\
+Logistic regression & 0.748 & 0.0361 & 0.784 & 0.0311 \\
+Random forest & 0.855 & 0.0092 & 0.887 & 0.0046 \\
+SVM & 0.869 & 0.0134 & 0.803 & 0.0163 \\
+Gradient boosting & 0.867 & 0.0046 & 0.872 & 0.0046 \\
+Stacking ensemble & 0.693 & 0.0509 & 0.748 & 0.0410 \\
+Trust-weighted ensemble & 0.849 & 0.0106 & 0.848 & 0.0039 \\
+Voting ensemble & 0.864 & 0.0127 & 0.873 & 0.0099 \\
+\midrule
+Mean & 0.784 & 0.0193 & 0.791 & 0.0152 \\
+\bottomrule
+\end{tabular}
+\caption{Single-day vs multi-day features, 30-day logs.}
+\label{tab:ablation-month}
+\end{table}

@@ -1,0 +1,205 @@
+/* Phone overrides. Loaded last, so these win over the desktop rules.
+ * The 560px breakpoint matches hooks/useNarrow.ts. */
+
+html {
+  /* Keep text the size we set when a phone rotates to landscape. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Taller results-table and employee lists scroll inside their box on phones,
+ * with the header row pinned. */
+.table-scroll.tall thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+@media (max-width: 560px) {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Form fields below 16px make iOS zoom in on focus. */
+  select,
+  input {
+    font-size: 16px;
+  }
+
+  .content {
+    padding: 20px 14px 56px;
+    gap: 16px;
+  }
+
+  .navbar-inner {
+    height: 58px;
+  }
+
+  .nav {
+    max-height: calc(100svh - 62px);
+  }
+
+  .nav-link {
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+
+  .page-header h1,
+  .results-header h1 {
+    font-size: 25px;
+  }
+
+  .lead,
+  .layer-lead {
+    font-size: 15.5px;
+  }
+
+  .panel {
+    padding: 16px 14px;
+  }
+
+  .panel > h2 {
+    font-size: 17px;
+  }
+
+  /* ---- Tables: short values stay on one line; long text wraps at a
+   * readable width; the table scrolls sideways inside its box. ---- */
+  .table-scroll table {
+    width: max-content;
+    min-width: 100%;
+    font-size: 13px;
+  }
+
+  .table-scroll th,
+  .table-scroll td {
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+
+  .table-scroll td:first-child,
+  .table-scroll th:first-child {
+    white-space: normal;
+    min-width: 7.5rem;
+    max-width: 10rem;
+  }
+
+  .table-scroll.tall {
+    max-height: 65svh;
+    overflow-y: auto;
+  }
+
+  /* ---- Stat cards: three small tiles to a row instead of one each ---- */
+  .stat-grid {
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 10px 12px;
+    border-left-width: 3px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  /* ---- Easier tap targets ---- */
+  a.button-link,
+  .poster-sheet a.poster-button {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .toggle,
+  a.toggle {
+    padding: 8px 12px;
+  }
+
+  .exp-tab {
+    padding: 10px 12px;
+  }
+
+  button.sort {
+    padding: 6px 0;
+  }
+
+  .heatmap td a {
+    display: inline-block;
+    padding: 4px 0;
+  }
+
+  .panel-controls {
+    width: 100%;
+  }
+
+  .panel-controls input {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+
+  .run-controls {
+    gap: 12px;
+  }
+
+  .run-controls label {
+    flex: 1 1 120px;
+  }
+
+  .run-controls input {
+    width: 100%;
+  }
+
+  /* Previous / next: one link per row instead of two squeezed side by side. */
+  .prev-next {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .prev-next a {
+    padding: 12px 14px;
+  }
+
+  .prev-next a:last-child {
+    text-align: right;
+  }
+
+  /* ---- Home poster: one gutter, not two ---- */
+  .poster-sheet {
+    padding: 0 0 24px;
+  }
+
+  .content .poster-head {
+    font-size: 21px;
+    padding: 10px 14px;
+  }
+
+  .poster-body {
+    padding: 14px 14px 16px;
+  }
+
+  .poster-stat-value {
+    font-size: 28px;
+  }
+
+  .poster-stats.three .poster-stat-value {
+    font-size: 24px;
+  }
+
+  .glossary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card:hover {
+    transform: none;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    gap: 6px;
+  }
+}

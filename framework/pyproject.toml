@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "insider-threat-framework"
+version = "1.0.0"
+description = "A hybrid machine learning framework for insider threat detection using behavioural signals and trust modelling"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "scikit-learn>=1.4",
+    "imbalanced-learn>=0.12",
+    "torch>=2.2",
+    "scipy>=1.12",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+web = ["fastapi>=0.110", "uvicorn[standard]>=0.29"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+filterwarnings = [
+    # scikit-learn deprecation chatter from third-party internals would
+    # otherwise bury the actual test output.
+    "ignore::FutureWarning",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "scripts", "tests", "webapp/backend"]
+
+[tool.ruff.lint]
+select = ["F", "E9", "I", "UP"]

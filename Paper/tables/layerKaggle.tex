@@ -1,0 +1,24 @@
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Strategy & \multicolumn{2}{c}{Single-day snapshot} & \multicolumn{2}{c}{Multi-day temporal} \\
+ & F1 & FPR & F1 & FPR \\
+\midrule
+Decision tree & 0.574 & 0.0448 & 0.689 & 0.0215 \\
+Isolation forest & 0.305 & 0.0483 & 0.375 & 0.0406 \\
+Logistic regression & 0.518 & 0.1249 & 0.574 & 0.1049 \\
+Random forest & 0.608 & 0.0574 & 0.783 & 0.0191 \\
+SVM & 0.178 & 0.0003 & 0.567 & 0.0107 \\
+Gradient boosting & 0.658 & 0.0088 & 0.730 & 0.0081 \\
+Stacking ensemble & 0.591 & 0.0650 & 0.553 & 0.1234 \\
+Trust-weighted ensemble & 0.640 & 0.0316 & 0.661 & 0.0046 \\
+Voting ensemble & 0.612 & 0.0314 & 0.730 & 0.0188 \\
+\midrule
+Mean & 0.520 & 0.0458 & 0.629 & 0.0391 \\
+\bottomrule
+\end{tabular}
+\caption{Single-day vs multi-day features, Kaggle dataset.}
+\label{tab:ablation-kaggle}
+\end{table}

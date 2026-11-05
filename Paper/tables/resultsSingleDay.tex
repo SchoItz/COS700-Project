@@ -1,0 +1,30 @@
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Strategy & P & R & F1 & FPR & PR-AUC & FP \\
+\midrule
+\multicolumn{7}{l}{\textit{Individual strategies}} \\
+Random forest & 0.908 & 0.547 & \textbf{0.682} & 0.0029 & 0.818 & 4 \\
+Decision tree & 0.532 & 0.516 & 0.522 & 0.0241 & 0.301 & 32 \\
+LSTM & 0.295 & 0.864 & 0.440 & 0.1092 & 0.688 & 145 \\
+GNN & 0.376 & 0.479 & 0.410 & 0.0468 & 0.434 & 62 \\
+Logistic regression & 0.244 & 0.851 & 0.379 & 0.1392 & 0.596 & 185 \\
+Autoencoder & 0.199 & 0.254 & 0.222 & 0.0537 & 0.147 & 71 \\
+SVM & 0.912 & 0.120 & 0.210 & 0.0007 & 0.660 & 1 \\
+CNN & 0.075 & 0.629 & 0.135 & 0.4061 & 0.112 & 540 \\
+Isolation forest & 0.102 & 0.104 & 0.101 & 0.0470 & 0.075 & 62 \\
+\midrule
+\multicolumn{7}{l}{\textit{Combined strategies}} \\
+Voting ensemble & 0.679 & 0.524 & 0.591 & 0.0130 & 0.679 & 17 \\
+Gradient boosting & 0.941 & 0.393 & 0.552 & 0.0013 & 0.739 & 2 \\
+AE-RNN hybrid & 0.294 & 0.904 & 0.444 & 0.1150 & 0.698 & 153 \\
+Trust-weighted ensemble & 0.990 & 0.267 & 0.419 & 0.0002 & 0.711 & 0 \\
+Stacking ensemble & 0.192 & 0.933 & 0.318 & 0.2075 & 0.698 & 276 \\
+CNN-RNN hybrid & 0.097 & 0.814 & 0.173 & 0.4079 & 0.147 & 542 \\
+\bottomrule
+\end{tabular}
+\caption{Results on the single-day logs. Means over ten folds.}
+\label{tab:results-single-day}
+\end{table}

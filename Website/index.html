@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/up-crest.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Insider Threat Detection · COS700</title>
+    <meta name="theme-color" content="#00234b" />
+    <script>
+      // Apply a saved dark-mode choice before first paint; light is the default.
+      try {
+        if (localStorage.getItem("itd-theme") === "dark") document.documentElement.dataset.theme = "dark";
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,655 @@
+\documentclass[a4paper,12pt]{article}
+\author{Francois Scholtz}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{mdframed}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{float}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{blue}{rgb}{0,0,0.8}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\mdfsetup
+{
+   skipabove=\topskip,
+   skipbelow=\topskip,
+   leftmargin=2em,
+   rightmargin=2em
+}
+
+\title
+{
+   \includegraphics[width=12cm]{up-logo.jpg} \\
+   \vspace{2cm}
+   \textbf{COS700 Research Report} \\ \vspace{0.5cm}
+   \textbf{A Hybrid Machine Learning Framework for Insider Threat Detection Using
+   Behavioural Signals and Trust Modelling} \\ \vspace{0.5cm}
+   \textbf{Student number:} u19024232 \\ \vspace{0.5cm}
+   \textbf{Supervisor(s)}: \\ Prof. Jan Eloff
+}
+
+\newcommand{\resultinput}[1]{{\let\small\footnotesize\setlength{\tabcolsep}{4pt}\input{#1}}}
+\newcommand{\resultfigure}[3]{\begin{figure}[H]\centering\includegraphics[width=\textwidth]{#1}\caption{#2}\label{#3}\end{figure}}
+
+\date{November 2026}
+\setlength{\emergencystretch}{2em}
+\begin{document}
+
+\maketitle
+
+\newpage
+\linespread{1.241}
+
+\section*{Abstract}
+
+Insider threats are notoriously difficult to spot because the individuals involved use their legitimate access to carry out attacks. They will already know the organisation inside and out and can therefore disguise their actions as completely legitimate activity. This is why they are so hard to detect. Some have suggested using machine learning to identify and detect these individuals, though published work in this area is still lacking in three key areas.
+
+\begin{itemize}
+  \item Most detectors only look at single-day snapshots and do not take into account how behaviour changes over time.
+  \item Trust is rarely actually fed into the design and the decision-making of detection, even though it is talked about as an organisational concept. It is not used as a way of reducing false positives.
+  \item Models are rarely benchmarked against one another under the same conditions, so it is very difficult to establish that hybrid models are in any way superior.
+\end{itemize}
+To cover all three gaps, I have built an insider threat detection framework comprising five layers. The temporal layer creates a rolling baseline for each employee and describes each day by how far the employee is from their own baseline and the peer-group baseline. The trust layer turns those deviations into a score, which updates over time as the employee’s behaviour is observed. The detection layer runs the same 15 ML models, 9 individual and 6 combined, against the same feature matrix, decision rule, and cross-validation folds to ensure fair comparisons. The framework is then tested on three datasets. The primary benchmark is the Kaggle insider threat dataset, a synthetic dataset published by a third party (299,880 employee-days from 1,666 employees over 180 consecutive days). I supplement this with two synthetic datasets I generated for the study: A 30 day behavioural log with 5 insider archetypes and a single-day log corpus with 20 weeks of daily activity per employee. Differences are assessed via Wilcoxon signed-rank tests with Holm-Bonferroni correction.
+
+Adding in the history of previous behaviour boosted the mean F\textsubscript{1} by 0.109 on the Kaggle data and only by 0.007 on my 30-day logs. As a per-employee alert threshold, it reduced false positives by 68\% on the synthetic 30-day logs at the cost of some recall. As a model input it had no effect. Within each dataset no combination of models outperformed the best individual model, the random forest. As a group, the combinations had higher average F1, precision and recall than the individual models, but the best individual model was still the best. Models trained on my own synthetic data performed very poorly when tested on the Kaggle data and lost more than half their best score. This suggests that an organisation should use an insider threat detection model trained and validated on its own data, and that models may not transfer well between organisations.
+
+\section*{Keywords:}
+
+Insider threat detection, Behavioural analytics, Dynamic trust modelling, user and entity behaviour analytics, Machine learning, Deep learning, Ensemble learning, Hybrid models, Anomaly detection, Misuse detection, Class imbalance, SMOTE, False positive reduction, Temporal behavioural signals, Digital forensic readiness
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Introduction}
+\label{sec:1}
+
+Insiders are people who already have authorisation to access the data and information of an organisation, namely employees, contractors and partners. They are given that access in order to do their jobs and perform their roles within the organisation. An insider threat is when that access is abused or misused in a way that is damaging to the organisation. Insiders can be broken down into three groups:
+
+\begin{itemize}
+  \item \textbf{Malicious insider}: An insider who intentionally damages or steals from the organisation for personal gain.
+  \item \textbf{Negligent insider}: An insider who accidentally damages or leaks information from the organisation.
+  \item \textbf{Compromised insider}: An insider whose legitimate credentials have been taken over by an external attacker~\cite{homoliak2019}.
+\end{itemize}
+Insiders know the organisation inside out, have legitimate access and can circumvent both physical and digital controls for long periods of time without being detected. This is why they are so hard and so costly to detect~\cite{saxena2020}.
+
+The previous method of identifying insider threats was rule-based where each signature was hand-defined. As the signatures are hand defined, this approach cannot detect new behaviour or small deviations from the norm. Insiders can therefore easily circumvent the alerts, and the number of false positives is so high that analysts are effectively suffering from alert fatigue. Machine learning on the other hand can use the organisation's data to build a statistical baseline of what 'normal' employee activity looks like, detect large deviations from that norm and flag those accounts. This approach leads to a significant reduction in false positives and is also able to adapt to new patterns using retraining~\cite{liu2018}. There are two detection strategies:
+
+\begin{itemize}
+  \item \textbf{Anomaly-based techniques}: The behaviour of employees is modelled, a baseline is created, and any deviation from the norm is detected as an anomaly~\cite{ibraheem2025}.
+  \item \textbf{Misuse-based techniques}: Apply a set of pre-defined rules or learn from labelled malicious examples~\cite{liu2018,gheyas2016}.
+\end{itemize}
+However, published work still falls short in three areas~\cite{joubert2024}:
+
+\begin{enumerate}
+  \item \textbf{No history:} Most models used for insider threat detection look at a single day's worth of activity and cannot detect a change in behaviour without some form of historical information.
+  \item \textbf{Trust is not a measurable metric:} This organisational concept is rarely converted into a detector-design or decision-making metric, limiting its ability to reduce false positives.
+  \item \textbf{No fair comparison at all:} The models are rarely compared under the same conditions, making it difficult to identify the models that outperform others.
+\end{enumerate}
+Three surveys look at the state of the insider threat modelling field. Alzaabi and Mehmood~\cite{alzaabi2024} find that deep learning and NLP-based methods are promising alternatives to classical machine learning, but deep models are hard to interpret and data scarcity remains a challenge. Yuan and Wu~\cite{yuan2021} identify the lack of labelled insider threat data as a key limitation of the field. Kim et al.~\cite{kim2020} make the same point from the IoT perspective. Ensemble methods are generally reported to improve predictive performance~\cite{alzaabi2024}. The evaluation methodologies are so disparate that you cannot meaningfully compare the studies and most of the work is evaluated on the same very small set of synthetic data.
+
+To address all three gaps, I have developed a framework that tracks behaviour over time, models employee trust as a score used as a per-employee alert threshold to reduce false positives and compares individual and hybrid strategies side by side under the same conditions.
+
+How this is achieved:
+
+\begin{enumerate}
+  \item A five-layer detection framework that normalises the data and keeps the temporal, trust, detection and validation layers separate, so that each layer can be isolated and measured individually.
+  \item A dynamic trust score based on behavioural deviation, tested in two configurations: As an input feature and as a per-employee alert threshold.
+  \item A controlled comparison of the fifteen detection strategies on the same feature matrix, same folds and same decision rule, with paired significance tests and multiple comparison correction.
+  \item An evaluation on three datasets: a third-party synthetic dataset of 299,880 employee-days as the main benchmark, and two synthetic datasets that I created.
+  \item A comparison of single-day snapshots with multi-day temporal features, which contain the historical information.
+  \item A measurement of which behavioural signals the detection relies on, using permutation importance.
+\end{enumerate}
+\section{Problem Statement}
+\label{sec:2}
+
+Most insider threat detection relies on a single point-in-time view of employee activity and a single classifier tuned for accuracy rather than recall and precision on the malicious class. As a result, the false positive rate is extremely high, leading to alert fatigue. There is literature that reports the benefits of combined models~\cite{alzaabi2024}, but they are rarely compared under the same conditions. Employee trust is cited as being a very important factor, but it is almost never modelled as a quantifiable input to the detection process~\cite{liu2018}. No framework in the reviewed literature tracks behaviour over time, incorporates a trust score and compares individual and combined models on an even footing.
+
+\textbf{Research question:} How can a framework that takes into account behavioural signals over time, trust modelling and a range of different strategies improve the detection of insider threats?
+
+\textbf{Sub-questions:}
+
+\textbf{SQ1:} What behavioural signals are the most reliable in distinguishing between malicious and benign activity?
+
+\textbf{SQ2:} How can a dynamic trust score be derived from behavioural deviation and used in detection to reduce false positives?
+
+\textbf{SQ3:} How do the individual models perform against the combined and hybrid approaches on a consistent dataset using metrics that are appropriate for imbalanced data? Which of the approaches is best?
+
+\subsection{Scope, Limitations, and Assumptions}
+\label{sec:2.1}
+
+The scope of the research is a framework for insider threat detection based on behavioural signals and trust scoring, with a controlled comparison of various machine learning approaches. All the datasets are mapped to the same schema and normalised. The research is not about real time deployment, packet level intrusion detection or IoT. The framework is a detection engine which could be used as part of a digital forensic readiness process~\cite{reddy2013,shoderu2025,makura2021}. All three datasets are synthetic, and no real-world data is used. The Kaggle dataset was generated by a third party independently of my own generators. To mitigate the risk that the results only hold for my generators I have repeated the strategy comparison and the test of the temporal layer on the Kaggle dataset and I have also looked at how well the models trained on my datasets generalise to it. The trust, class imbalance and signal importance experiments (E8 to E10) were all run on the synthetic 30 day logs only.
+
+\section{Methodology}
+\label{sec:3}
+
+This research takes a positivist stance. All of the claims are about measurable detection performance and are each tested with controlled experiments and statistical comparison rather than interpretation~\cite{olivier2009}. The research methodology is design science~\cite{hevner2004} in that the primary output is an artefact, the detection framework, and the artefact is then subjected to a series of quantitative experiments to determine which approach is best and why. The study proceeds in four stages:
+
+\begin{enumerate}
+  \item Survey the literature to identify the gaps (Sections~\ref{sec:4} and~\ref{sec:5}).
+  \item Design and build the framework, with each layer separate so that it can be switched off and measured (Section~\ref{sec:6}).
+  \item Evaluate the framework in ten controlled experiments on three datasets (Sections~\ref{sec:7} and~\ref{sec:8}).
+  \item Answer the questions based on the results and assess the threats to validity (Sections~\ref{sec:9} and~\ref{sec:10}).
+\end{enumerate}
+\section{Background}
+\label{sec:4}
+
+\subsection{Insider Threats and Their Impact}
+\label{sec:4.1}
+
+Liu et al.~\cite{liu2018} and Saxena et al.~\cite{saxena2020} both state that insider threats are arguably the most damaging type of threat and the most difficult to detect because the insider has legitimate access and knows the organisation inside out. Homoliak et al.~\cite{homoliak2019} go on to classify the various aspects of insider threat analysis, modelling and countermeasures and make a distinction between intentional and unintentional insiders. All of these reviews come to the same conclusion which is that detection has to move from rule-based monitoring to behaviour driven analysis.
+
+\subsection{Classical Machine Learning Approaches}
+\label{sec:4.2}
+
+Early detection work used support vector machines~\cite{cortes1995}, random forests~\cite{breiman2001} and decision trees. Isolation forests~\cite{liu2008} work differently: They isolate the anomalies directly and score a row as anomalous if it can be isolated with just a few random splits. They require no malicious examples to train which is ideal in situations where malicious activity is very rare. The classical methods are all interpretable and efficient, but all of them require manual feature engineering~\cite{alzaabi2024}. Gheyas and Abdallah~\cite{gheyas2016} point out that published algorithms cannot be compared on their reported results because each is evaluated on different data, so they rank them on theoretical merit instead.
+
+\subsection{Deep Learning Approaches}
+\label{sec:4.3}
+
+Deep learning learns representations directly from the data, reducing the need for manual feature engineering~\cite{lecun2015}. Yuan and Wu~\cite{yuan2021} group the architectures into feedforward, convolutional, recurrent and graph neural networks. Tuor et al.~\cite{tuor2017} model each user's activity stream with deep and recurrent networks and outperform PCA, SVM and isolation forest baselines on the CERT data. Villarreal-Vasquez et al.~\cite{villarreal2023} apply an LSTM-based anomaly detection approach and find that LSTMs predict event sequences more accurately than hidden Markov models. Xiao et al.~\cite{xiao2023} use graph neural networks to capture the context of user behaviour over time and detect insider threats accurately from limited labelled data. Deep models generally beat classical models but they tend to have higher false positive rates and are very sensitive to how the training data is constructed.
+
+\section{Related Work}
+\label{sec:5}
+
+\subsection{Combined and Hybrid Approaches}
+\label{sec:5.1}
+
+A commonly reported result in the literature is that combining models improves on single models. Hybrid architectures (CNN feeding into an RNN) and ensembles (voting, stacking) all appear to be able to leverage the strengths of the individual models. Alzaabi and Mehmood~\cite{alzaabi2024} report that ensemble methods improve predictive performance and recommend hybrid models that combine traditional and deep learning methods. Manoharan et al.~\cite{manoharan2024} compare a range of supervised algorithms under the same setting on the CERT r4.2 dataset and find that random forest gives the best accuracy and F1-score. None of these papers, however, compares individual and combined strategies under the same conditions with temporal and trust features.
+
+\subsection{Behavioural Signals, Trust, and Datasets}
+\label{sec:5.2}
+
+Behavioural detection is based on signals that indicate a departure from normal activity like access outside of normal hours and use of removable media~\cite{ibraheem2025}, printing activity and entry on a weekend. Kim et al.~\cite{kim2019} build user behaviour models from daily activity summaries and weekly e-mail patterns, and show that anomaly detection works well on highly imbalanced data. Trust is discussed almost exclusively in the context of organisational/access control and is very rarely used as a quantifiable input to the detection process.
+
+Kaggle has a range of labelled insider threat datasets available, corporate environment~\cite{zaki2024}, classified environment~\cite{kaggle_classified2024}, UEBA dataset~\cite{kaggle_ueba2024}, insider threat test dataset~\cite{kaggle_testdataset} and CERT derived R6.2 dataset~\cite{kaggle_r62}. The CERT dataset~\cite{glasser2013} was created essentially because you cannot get real incident data and it has become the benchmark. Most of the reviewed work uses the same synthetic data, and it consistently shows that class imbalance makes accuracy a poor metric. Over-sampling (SMOTE~\cite{chawla2002}) is a common technique to deal with the class imbalance~\cite{alzaabi2024}. No study I reviewed uses trust as a dynamic model input.
+
+\section{The Proposed Framework}
+\label{sec:6}
+
+\subsection{The Conceptual Framework}
+\label{sec:6.1}
+
+The artefact is a layered framework (Table~\ref{tab:framework}). Each layer has one responsibility and a well defined interface to the layer above and the layer below. The temporal and trust layers can be turned off independently of the detection layer and all of the strategies use the same feature matrix. The contribution of each layer can therefore be assessed in isolation.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{>{\bfseries}p{3.6cm} p{9.2cm}}
+\toprule
+Layer & Function \\
+\midrule
+Data layer & Load each source, map to a common schema, reconcile the duplicates and conflicting labels, impute, encode and standardise the result. \\
+Temporal behavioural signal layer & Build up a rolling baseline of 'normal' for each individual and then describe each day in terms of how far it is from that individual's baseline and from the department and role peer group baseline on that same day. \\
+Trust modelling layer & Convert the overall deviation into a per-employee trust score that drops under sustained anomalies and recovers during normal activity. \\
+Detection layer & Score each employee-day with individual and combined machine learning strategies, all behind one common interface. \\
+Validation and decision layer & Apply the decision rule, report ranked alerts, and evaluate performance with metrics suited to imbalanced data. \\
+\bottomrule
+\end{tabular}
+\caption{The layers and functions of the conceptual framework.}
+\label{tab:framework}
+\end{table}
+
+\subsection{Data Layer}
+\label{sec:6.2}
+
+Every source is mapped into a common schema of 17 columns: Employee ID, timestamp, source and event type, department and role, two time flags (off hours and weekend), eight activity counters (device, print, email, file, HTTP, failed logins, data transferred in MBs and session duration in minutes) and a binary label. That common schema is what allows all three datasets to go through the same set of layers.
+
+The framework can also be configured to combine multiple sources. In that case duplicate records like the same employee, same timestamp, same event type and same source are dropped. If a record has conflicting labels, then the malicious label is kept, ensuring that a duplicate benign record can never hide a malicious one.
+
+Missing numeric values are filled with the column median, missing categorical values are filled with the column mode. The categorical features are one hot encoded and the numeric features are standardised. Origin country, citizenship and medical history are dropped on ethical grounds if present. Employee ID and timestamp are kept so that every alert can be traced back to its source but are not used as inputs to the model.
+
+\subsection{Temporal Behavioural Signal Layer}
+\label{sec:6.3}
+
+For each employee and for each of the eight activity counters I compute a rolling mean and standard deviation over the w=14 events prior to the event in question. Each observation is then expressed as a standard score against that baseline.
+
+\begin{equation}
+z^{\text{self}}_{i,t} = \frac{x_{i,t} - \mu_{i,t-1:t-w}}{\sigma_{i,t-1:t-w}}
+\end{equation}
+
+where $x_{i,t}$ is employee $i$'s value for the counter on day $t$ and $\mu$, $\sigma$ are taken over the preceding window. The current observation is left out of its own baseline. If it were included it would in part account for the deviation it is supposed to be measuring.
+
+A second score compares the employee with peers in the same department and role on the same day:
+
+\begin{equation}
+z^{\text{peer}}_{i,t} = \frac{x_{i,t} - \mu_{g(i),t}}{\sigma_{g(i),t}}
+\end{equation}
+
+where g(i) is employee i's peer group. The self score is a measure of change relative to the employee's own historical performance. The peer score picks up on behaviour which is outside the ordinary for the role even if that has always been the case for that individual. One record per day gives you 14 events over the two weeks, which will smooth out the daily noise and still capture any long-term change. A minimum of three prior observations is required before a score is calculated and the events prior to that point are given a deviation of zero. If the standard deviation is zero the deviation is also zero.
+
+This gives 16 deviation features, 8 counters each, compared in two ways and an overall deviation $d_{i,t} = \frac{1}{16}\sum |z|$ which the trust layer makes use of.
+
+\subsection{Trust Modelling Layer}
+\label{sec:6.4}
+
+The trust score $T_{i,t} \in [0,1]$ is updated over each employee's events in time order, starting at $T_{i,0} = 1$:
+
+\begin{equation}
+T_{i,t} = \mathrm{clip}_{[0,1]}
+\begin{cases}
+T_{i,t-1} - \alpha\,(d_{i,t} - \theta) & \text{if } d_{i,t} > \theta \\
+T_{i,t-1} + \rho & \text{otherwise}
+\end{cases}
+\end{equation}
+
+With a decay rate of \emph{$\alpha$}=0.25, a recovery rate of \emph{$\rho$}=0.03 and a deviation threshold of \emph{$\theta$}=1.5. Trust falls off in direct proportion to how far the deviation is above the threshold and recovers very slowly during normal activity. An employee who is anomalous for several days in a row will therefore end up with considerably less trust than one who has only had one anomalous day. The score therefore reflects how long a deviation lasts, not just how large it is. Because each update is clipped, the score is recalculated day by day for each employee.
+
+I compared two designs for using the trust score:
+
+\begin{itemize}
+  \item \textbf{Trust as a feature:} It is a standard model input along with the behavioural signals and all the strategies use a global threshold of 0.5.
+  \item \textbf{Trust as sensitivity:} The trust score also defines a per-employee decision threshold $\tau_{i,t} = \mathrm{clip}_{[0.05,\,0.95]}\!\left(0.5 + \gamma (T_{i,t} - 0.5)\right)$ with gain $\gamma = 0.3$. A well behaved employee will require a higher detection score before an alert is raised whereas an employee whose trust has fallen will be triggered at a lower score. With $\gamma = 0.3$ the threshold remains in the range 0.35 to 0.65 so the clip never actually binds in these experiments. This prevents the situation of a large gain making an employee completely unalertable or completely alertable. The threshold is not provided to the model as a feature.
+\end{itemize}
+The strategy comparisons use the trust-as-feature design so all of the strategies are using the same decision rule. The sensitivity design is evaluated in its own experiment (Section~\ref{sec:8.6}).
+
+\subsection{Detection Layer}
+\label{sec:6.5}
+
+I implemented all 15 of the strategies behind a single interface (fit, predict\_proba and predict) so the validation layer treats them all the same. The classic models use scikit-learn~\cite{pedregosa2011} and the deep models use PyTorch~\cite{paszke2019}.
+
+\begin{itemize}
+  \item Individual, misuse-based:
+  \begin{enumerate}
+    \item logistic regression
+    \item decision tree
+    \item random forest~\cite{breiman2001}
+    \item support vector machine~\cite{cortes1995}
+    \item long short-term memory network~\cite{hochreiter1997}
+    \item one dimensional convolutional network
+    \item graph convolutional network~\cite{kipf2017,xiao2023}.
+  \end{enumerate}
+  \item \textbf{Individual, anomaly-based(Trained on benign data only):}
+  \begin{enumerate}
+    \item isolation forest~\cite{liu2008}
+    \item autoencoder
+  \end{enumerate}
+\end{itemize}
+\begin{itemize}
+  \item \textbf{Combined:}
+  \begin{enumerate}
+    \item gradient boosting
+    \item soft voting ensemble
+    \item stacking ensemble
+    \item CNN-RNN hybrid
+    \item autoencoder-RNN hybrid
+    \item trust weighted ensemble
+  \end{enumerate}
+\end{itemize}
+Random forest and gradient boosting are both built from many decision trees, so the line between individual and combined is partly a convention. I treat the random forest as a single off-the-shelf learner, as is usual in the insider threat literature, and count gradient boosting as combined because each of its trees is fitted to correct the ones before it. The comparison is therefore best read as a random forest against strategies that combine several models or architectures.
+
+Implementation notes:
+
+\begin{enumerate}
+  \item The SVM has no native probability output, so the probabilities are derived from a sigmoid calibrator fitted on cross-validated predictions~\cite{platt1999}.
+  \item The graph network constructs its own graph: Each employee day is a node in the graph, connected to its 10 nearest neighbours in the feature space. The adjacency matrix is symmetrically normalised with self-loops~\cite{kipf2017}. This is as close as I can get to the behaviour graph of Xiao et al.~\cite{xiao2023} in this feature space. The graph is capped at 20k nodes, and so the large Kaggle test set in the generalisation experiments is scored in chunks of 20k rows. No other experiment hits the cap.
+  \item The trust-weighted ensemble takes the average of the three base detectors and multiplies that by $(1-\lambda T_{i,t})$ ($\lambda=0.4$). The resulting score is then mapped back to $[0,1]$ via the statistics gathered during training so that a row's score is independent of the other rows it is scored in conjunction with.
+\end{enumerate}
+Every strategy gets the same budget. The autoencoder, the LSTM, the CNN and the two hybrids all train for 12 epochs with the same optimiser and learning rate. The graph network is trained in full batch on one graph and takes 200 gradient steps at a learning rate of $10^{-2}$. No strategy is tuned any more than any other as that would be unfair.
+
+The recurrent models repeat the process for each employee-day separately rather than a sequence of days. Each row is fed into the LSTM as a sequence of length one and the CNN-RNN hybrid then runs its recurrence along the feature axis. The only temporal context that is introduced is via the deviation and trust features. They are therefore more accurately described as small gated networks over the feature matrix than as sequence models in the sense of~\cite{villarreal2023}.
+
+\subsection{Class Imbalance}
+\label{sec:6.6}
+
+I deal with class imbalance in three ways~\cite{lemaitre2017}. Class weighting is used in all the supervised methods apart from gradient boosting. The scikit-learn models use balanced class weights. Gradient boosting has no such option in scikit-learn and so it and the gradient boosting member of the trust weighted ensemble are unweighted. The PyTorch classifiers use a positive class weight equal to the ratio of negative to positive rows in the training fold. If you do not weight then an unweighted loss will just learn to predict the majority class. The isolation forest and the autoencoder train on benign rows only so weighting does not apply to them. I also tried two resampling techniques on top of the weighting: SMOTE~\cite{chawla2002} and undersampling at a fixed 3:1 ratio.
+
+Resampling is done on the training fold only after the split. Resampling prior to the split would have taken the test fold positives and created synthetic copies of those to add to the training fold which would have inflated every score.
+
+\subsection{Validation and Decision Layer}
+\label{sec:6.7}
+
+A detector that never alerted would have achieved between 92\% and 97\% accuracy on these datasets so I do not use accuracy at all. I report precision, recall (the detection rate), F1 and the false positive rate and look at the malicious class precision and the number of false positives~\cite{yuan2021}. I also report average precision, the area under the precision-recall curve. It is threshold independent and in the case of very severe class imbalance the precision-recall curve is by far the more informative of the two as opposed to the ROC curve~\cite{saito2015}.
+
+Stratified 10-fold CV with a single fixed seed means all the strategies end up with the same folds so the results are in pairs. I use the Wilcoxon signed-rank test~\cite{wilcoxon1945} to assess the differences as Dem\v{s}ar recommends for comparing two classifiers on paired results~\cite{demsar2006}. Dem\v{s}ar’s recommendation is made for separate datasets, so applying it to folds is an approximation. The folds are not fully independent as they share so much of their training data and so the \emph{p}-values are a little optimistic~\cite{nadeau2003} (Section~\ref{sec:10}). In each experiment I compare the 14 competitors against the best strategy, so I apply the Holm-Bonferroni correction~\cite{holm1979}.
+
+Ten folds are required as a result of that correction. The Wilcoxon is exact at this sample size so the number of folds determines the smallest possible \emph{p}-value. With five folds this is 2/2\textsuperscript{5} = 0.0625 which is above every corrected threshold so no difference could be significant. With ten folds it is 0.00195 which is below the most stringent corrected threshold of 0.05/14 $\approx$ 0.0036. Power is still very low so a non-significant result means the folds cannot separate the two strategies, it does not mean the strategies are equal.
+
+\subsubsection*{Alert output}
+
+The practical output of this layer is a ranked list of alerts for the best strategy on both the 30 day and single day logs. The score for each row is taken from the fold that the row was held out in, so the alert list and the cross-validated metrics are from the same experiment. This is the one case where the trust-as-sensitivity design is used by default. The alert list will push a trusted employee's borderline day below a day from an employee whose trust has already been downgraded.
+
+\subsection{Behavioural Signal Importance}
+\label{sec:6.8}
+
+SQ1 asks which signals separate the classes. My answer to that is to use permutation importance for the best strategy, the random forest, on a stratified 30\% held out split. For each feature I take the importance as the drop in average precision when that feature is shuffled and then take the average of that over 10 shuffles. I use permutation importance(scikit-learn) rather than tree impurity importance as the latter is calculated on the training data and will be biased in favour of the continuous features like the z-scores over the binary off-hours and weekend flags. I then sum the importances by signal type: Raw daily value, deviation from own baseline, deviation from peer group, trust score and categorical attribute.
+
+\section{Experimental Setup}
+\label{sec:7}
+
+\subsection{Datasets}
+\label{sec:7.1}
+
+I used three datasets which differ in terms of difficulty and source (Table~\ref{tab:datasets}). All three are synthetic. The Kaggle dataset, generated by a third party, serves as the main benchmark for the other comparisons. It is also the dataset used for the generalisation tests. The 30 day and single day logs are datasets that I created as part of the study in order to be able to control the insider behaviour and label it appropriately. Each of the datasets tracks employees over many consecutive days with each row in each case being one employee's activity for one day.
+
+\resultinput{tables/datasets}
+
+\textbf{The 30-day logs} (synthetic) contain 100 employees over 30 consecutive days, with 20 insider threats split across five archetypes:
+
+\begin{enumerate}
+  \item A gradual escalation over two weeks, with logins moving late into the night.
+  \item A sudden three-day burst of late-night activity that fully reverts.
+  \item An off-hours-only shift where the volumes are at baseline, and it is just the login time that is different.
+  \item A weekend infiltrator whose weekdays are unchanged.
+  \item A very subtle exfiltration with a very gentle, sustained increase in data transfer only.
+\end{enumerate}
+Every normal value has a degree of seeded random noise, so to separate the anomalies out from that five of the normal staff are noisier than their peers but they are not in any way a threat. Those are the hard negatives which will penalise any strategy that treats any deviation as a threat.
+
+\textbf{The single day logs} (synthetic) are a corpus of 7 files one for each day of the week. Each file contains one activity summary per employee for that day of the week for the 100 employees over 1,000 weeks. Each record is a single day summary. 10 employees have anomalous behaviour at some point. I constructed the corpus so that no single day or feature can separate the classes.
+
+\begin{enumerate}
+  \item Every employee has their own baseline, so the benign values will end up overlapping the values of the drifting employees once they have drifted.
+  \item Everyone has their occasional busy days and late nights.
+  \item Drift ramps in over six weeks, so the first malicious days are almost identical to normal days.
+  \item Each drifting employee will have their own severity and will only drift on 3 to 5 of the 7 behaviours.
+\end{enumerate}
+A malicious day is therefore one that is atypical \emph{for that employee}. The single best raw feature is data transferred and only achieves an AUC of 0.716.
+
+The onset of drift is spread over weeks 616 to 964 and running 15 strategies over all 700 000 rows is simply too slow for the strategies whose runtime increases quadratically. So I take a 20 week window of consecutive days per employee centred on that employee's drift onset. That gives 140 days per employee and 14k rows in total. For the employees who do not drift at all the window start is still drawn from the set of onsets so the calendar date of the window is irrelevant to the label.
+
+\textbf{The Kaggle insider threat dataset(3rd-party synthetic)}~\cite{kaggle_classified2024} has 299,880 daily records for 1,666 simulated employees in a classified environment. All employees are observed over the same 180 day period and the records are for campus access, printing, optical media burning and travel. I mapped it onto the common schema following behavioural analogue. Burn requests become device activity, print commands become print activity, files burned become file activity, exits become the HTTP counter as a proxy for general activity, burn volume becomes data transferred and presence minutes become session duration. Email and failed logins have no analogue and are therefore zero. The per-day is\_malicious flag is the label. I did not use the per-employee flag as that would make the employee's identity sufficient to predict the label.
+
+For the within-dataset experiments, the Kaggle data is sampled on a whole-employee basis so the rolling baselines are preserved. I oversample malicious employees to ensure sufficient positive signal to separate the strategies within a reasonable time period. This does change the base rate so you cannot meaningfully compare absolute false positive counts against a run on the full population. The generalisation experiments use the full dataset.
+
+\subsection{Experiments}
+\label{sec:7.2}
+
+I ran ten experiments (Table~\ref{tab:experiments}). All use the same code, they vary only in the dataset and which layers/treatments are changed.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{llp{8.2cm}}
+\toprule
+Id & Dataset & Question \\
+\midrule
+E1 & 30-day & How do the fifteen strategies compare under cross-validation? \\
+E2 & Single-day & The same comparison on single-day employee records. \\
+E3 & Kaggle & The same comparison on the third-party Kaggle data. \\
+E4 & 30-day & Does multi-day history beat a single-day snapshot? \\
+E5 & Kaggle & The same temporal-layer test on the third-party Kaggle dataset. \\
+E6 & 30-day $\rightarrow$ Kaggle & Do the strategies generalise to a dataset never seen? \\
+E7 & Single-day $\rightarrow$ Kaggle & The same generalisation test from single-day data. \\
+E8 & 30-day & Which trust-integration design works, and does trust help at all? \\
+E9 & 30-day & Does SMOTE or under-sampling improve on class weighting alone? \\
+E10 & 30-day & Which behavioural signals does the detection rest on? \\
+\bottomrule
+\end{tabular}
+\caption{The ten experiments.}
+\label{tab:experiments}
+\end{table}
+
+In E4 and E5, both arms use the same rows, same strategies and same folds, just a different feature set. The single-day snapshot arm sees the raw features for each day, no rolling baseline and no trust score, as if the model has no memory. The multi-day temporal arm uses the deviation features (Section~\ref{sec:6.3}) and the trust score (Section~\ref{sec:6.4}). The only difference between the arms is therefore the temporal and trust layers.
+
+In E6 and E7 each strategy is trained once on a synthetic dataset and then evaluated on the full Kaggle dataset. The imputers, encoder and scaler are all fit only on the training set and the one hot encoder will take in any categories that are present in the test set.
+
+\section{Results}
+\label{sec:8}
+
+All the results are generated by a single command (\path{python scripts/run_experiments.py}) which produces both the result files and the tables shown here. Nothing in this report has been typed in by hand.
+
+\subsection{Strategy Comparison on the 30-Day Logs (E1)}
+\label{sec:8.1}
+
+\resultinput{tables/resultsMonth}
+
+Random Forest is the best (F\textsubscript{1} = 0.887) and is an individual model. Soft voting (0.873) and gradient boosting (0.872) come next but the differences are not significant (p = 0.328 and p = 0.383 respectively, Table~\ref{tab:significance-month}). All the others are significantly worse than the Random Forest after correction. The top is therefore a three way tie between the individual model and the two ensembles.
+
+The family averages tell a different story. The combined strategies have an average F\textsubscript{1} of 0.768 as opposed to 0.657 for the individual models and their mean false positive rate is more than three times lower (0.017 vs 0.057).
+
+Other observations:
+
+\begin{enumerate}
+  \item Apart from the CNN-RNN hybrid, the trust-weighted ensemble has the best precision (0.929) and the fewest false positives (1.1 per fold versus 2.8 for the voting ensemble). It does however have less recall than the random forest (0.785 versus 0.860).
+  \item The CNN-RNN hybrid has the highest precision in the table (0.986) but picks up on fewer than half the malicious days (\emph{R} = 0.431). It is also the least stable, with a fold-to-fold F1 standard deviation of 0.242 versus a median of 0.062.
+  \item The plain CNN is the weakest. It gets a recall of 0.859 by essentially flagging a third of the benign activity (FPR = 0.296, 83.7 false positives per fold). This is precisely the alert fatigue the framework is designed to avoid.
+  \item Logistic regression is 7th on F\textsubscript{1} (0.784), but 5th on PR-AUC (0.917), and the autoencoder-RNN hybrid is 9th on F\textsubscript{1} (0.720) but 4th on PR-AUC (0.925). Both rank the days well, the 0.5 threshold is just cutting them off in the wrong place. The decision tree is the opposite: 5th on F1 (0.827) but 11th on PR-AUC (0.698), because it generates only a very small number of distinct probability values.
+\end{enumerate}
+\resultinput{tables/significanceMonth}
+
+\subsection{Strategy Comparison on the Single-Day Logs (E2)}
+\label{sec:8.2}
+
+\resultinput{tables/resultsSingleDay}
+
+The single day logs are by design the hardest dataset within an organisation. Random Forest is the best again. Voting ensemble (0.591) and gradient boosting (0.552) come next and all the rest are considerably behind the Random Forest (see Table~\ref{tab:significance-single-day}). The combined family again has the better average (F\textsubscript{1} = 0.416 v 0.345), better mean precision (0.532 v 0.405), recall (0.639 v 0.485) and average precision (0.612 v 0.425).
+
+The precision/recall trade-off is very clear. The trust weighted ensemble has the best precision (0.990) with 0.2 FPs per fold, but only recovers 26.7\% of the malicious days. Gradient boosting (0.941) and the SVM (0.912) behave similarly, with the SVM recovering just 12.0\%. At the other end of the trade-off, the stacking ensemble recovers 93.3\% of the malicious days at a precision of 0.192 and 276.0 FPs per fold. The autoencoder-RNN hybrid, the LSTM and the logistic regression all recover 85-91\% at a precision of 0.244-0.295.
+
+The decision tree is once again 4th on F\textsubscript{1} (0.522) and 11th on average precision (0.301). The stacking ensemble is the other way around: 10th on F\textsubscript{1} (0.318) and 4th on average precision (0.698).
+
+Isolation Forest (0.101) is last and the autoencoder (0.222) is eleventh. Both were trained purely on benign data so they will catch the odd bottom end of benign behaviour without having learned that it is benign. The CNN (0.135) and the CNN-RNN hybrid (0.173) both flag approximately 41\% of the benign activity (around 540 false positives per fold). Both of these models perform convolution along the feature axis which presumes that adjacent columns are related, and after one-hot encoding they are not. The median fold to fold F\textsubscript{1} standard deviation is 0.036.
+
+\resultinput{tables/significanceSingleDay}
+
+\subsection{Strategy Comparison on the Kaggle Dataset (E3)}
+\label{sec:8.3}
+
+This is a comparison using 70 employees sampled in full from the Kaggle dataset, 20 with at least one malicious day and 50 with none: 12,600 employee days, 946 of which were malicious (7.508\%).
+
+\resultinput{tables/resultsKaggle}
+
+The best result is F\textsubscript{1} = 0.783 with a gap between the best and worst of 0.502. All 14 of the other competitors are well behind the leader (see Table~\ref{tab:significance-kaggle}).
+
+The random forest is once again the winner, so an individual model is best on all three datasets. The combined family still has the better average (F\textsubscript{1} = 0.608 v 0.530), with higher mean precision (0.603 v 0.516), higher mean recall (0.757 v 0.636) and higher average precision (0.723 v 0.578).
+
+The two extremes of the precision-recall trade-off are both ensembles. The trust-weighted ensemble has the best precision (0.903) and the fewest false positives (5.4 per fold), but only recovers about half the malicious days (\emph{R}=0.522). The stacking ensemble recovers 96.0\% of the malicious days at 0.389 precision and 143.8 false positives per fold. This is 27 times the false positives and roughly four times the total alerts for an additional 43.8 points of recall. In the end it is a question of the cost of an analyst's time versus the cost of a missed insider and both of those are achievable from the same feature matrix.
+
+Two of the patterns from the 30 day logs reappear here. The decision tree is 4th on F1 (0.689) and 11th on average precision (0.502), the plain CNN is last (0.281) having flagged a quarter of the benign activity (FPR = 0.252, 294.1 false positives per fold). The median fold to fold F1 standard deviation is 0.037 as opposed to 0.062 on the 30 day logs. This is almost certainly due to each fold having roughly five times as many positive examples (946 vs 172).
+
+\resultinput{tables/significanceKaggle}
+
+\subsection{Does Multi-Day History Help? (E4, E5)}
+\label{sec:8.4}
+
+Both arms use the same rows, 9 strategies and folds with only the feature set being different. The trust weighted ensemble has no trust score in the snapshot arm so in that arm it becomes a plain soft voting ensemble over the same three base detectors. For that one strategy the model does change between the arms.
+
+\resultinput{tables/layerMonth}
+
+The 30 day logs (Table~\ref{tab:ablation-month}) show F\textsubscript{1} going from 0.784 to 0.791, an increase of just 0.007 with only 6 of the 9 strategies actually improving. This is negligible compared with the 0.631 spread due to model choice. Precision goes from 0.755 to 0.800 and the false positive rate falls by a fifth, from 0.0193 to 0.0152, but recall drops from 0.847 to 0.822. On this dataset the temporal layer just shifts the detector to a more conservative operating point rather than doing anything to improve it.
+
+\resultfigure{figures/layerMonth}{F\textsubscript{1} per strategy on the 30-day logs with single-day snapshot features versus multi-day temporal and trust features.}{fig:ablation-month}
+
+\resultinput{tables/layerKaggle}
+
+On the Kaggle data the mean F1 goes from 0.520 to 0.629, an increase of 0.109 which is 15 times the effect on my 30-day logs. 8 of the 9 methods beat the baseline on F\textsubscript{1} and all 9 improve on average precision (0.629 to 0.705). There is no trade-off here, precision goes up (0.591 to 0.668), recall goes up (0.579 to 0.667) and the false positive rate goes down (0.0458 to 0.0391). The best performing method, the random forest achieves an F\textsubscript{1} gain of 0.175 and an average precision gain of 0.255.
+
+\resultfigure{figures/layerKaggle}{The same single-day versus multi-day comparison on the Kaggle insider-threat dataset.}{fig:ablation-kaggle}
+
+The SVM gains the most (0.178 $\rightarrow$ 0.567). On the raw daily values it is almost completely silent (FPR 0.0003). Each individual has their own normal level so a malicious day for one person can look perfectly normal for another. The deviation features are each day's value relative to the individual's own baseline and relative to their peers which gives the kernel something to separate on. Random Forest gains 0.175, the voting ensemble 0.119 and the tree 0.114. The only model that actually goes down is the stacking ensemble ($-$0.038 F1) and that is a very small drop and does better on average precision (+0.089).
+
+The difference between the two datasets has a simple explanation. The vast majority of the archetypes in the 30 day logs are already present in a single day. Section~\ref{sec:8.8} confirms that the single raw off hours flag is the dominant signal on that dataset. In the Kaggle data a malicious day is not in any absolute sense extreme, it is just so for that employee, and that is precisely what a rolling baseline is designed to detect. A snapshot cannot do that. So evaluating a temporal model on my 30-day logs alone would significantly underestimate its value. This is a common situation in the literature and so the modest gains that are often reported for temporal modelling may be in part due to the benchmarks that are being used.
+
+\subsection{Generalisation to an Unseen Dataset (E6, E7)}
+\label{sec:8.5}
+
+Each strategy is trained once on a synthetic dataset and then evaluated on the full Kaggle dataset.
+
+\resultinput{tables/generalMonth}
+
+\resultinput{tables/generalSingleDay}
+
+Performance drops sharply. The best strategy trained on the 30 day logs gets an F1 of 0.305. Trained on the single day logs it is 0.166. The same Kaggle data gave 0.783 under cross validation (Section~\ref{sec:8.3}). More than half the apparent performance is therefore lost when the training data comes from somewhere else. The transfer affects three things at once: The organisation, the sensors and the data generator. You cannot attribute the drop to any one of those factors and I did not do any transfer testing between two real organisations.
+
+A random ranking would give you an average precision of 0.025 at that base rate. The best of the transferred strategies get to 0.139 and 0.163, and most of the rest are in the 0.030 to 0.090 range, only slightly better than guessing.
+
+Two further points stand out:
+
+\begin{enumerate}
+  \item \textbf{The ranking does not survive the transfer:} The random forest, the best of the lot in all three of the within-dataset comparisons, drops to an F1 of 0.030 when trained on the 30-day logs. The CNN-RNN hybrid is the best transferred strategy from that training set. This is the only instance in which a combined strategy beats every individual strategy, and all the scores are very low.
+  \item \textbf{Isolation Forest is the best performer in terms of transfer:} It comes third in the 30 day logs (0.175) and first in the single day logs (0.166) despite being one of the worst in every other dataset comparison. Training on benign rows only does not account for this as the autoencoder is also trained on benign rows only, and performs very poorly in terms of transfer (F\textsubscript{1} 0.064 and 0.060). The Kaggle rows are nothing like the autoencoder training data so it has a high reconstruction error almost everywhere and flags 72-79\% of the benign days. The isolation forest simply asks how easy it is to isolate a row from the rest and that appears to be the one that is better at handling population shifts. The supervised methods learn a boundary that works for one population and that boundary does not work for a different population with different sensors.
+\end{enumerate}
+The combined strategies still win on average - F\textsubscript{1} is 0.165 v 0.096 from the 30 day logs and 0.091 v 0.079 from the single day logs.
+
+The results do not suggest the framework is broken at all. It works in an organisation and the temporal layer is a big contributor. The results do suggest that the dataset figures should not be taken as being indicative of how the model will perform in a different organisation.
+
+\subsection{Trust Integration (E8)}
+\label{sec:8.6}
+
+The three arms build on each other. They all have the temporal characteristics. The second incorporates the trust score as a model input and the third replaces the global threshold with the per employee threshold from Section~\ref{sec:6.4}.
+
+\resultinput{tables/trustDesigns}
+
+\textbf{Including trust as a feature makes no measurable difference:} Across the 15 strategies the mean F1 goes from 0.714 to 0.701, the mean precision from 0.695 to 0.702 and the mean false positive count from 11.587 to 11.527. These changes are within the expected fold-to-fold noise. Trust is just a score that is derived from the deviation features that are already in the model so it is a completely redundant column. This is exactly what Section~\ref{sec:8.8} shows. Trust accounts for just a fraction of a percent of the total importance.
+
+\textbf{Using trust as a sensitivity threshold results in a massive reduction in false positives:} The per employee threshold reduces the mean number of false positives from 11.527 to 3.687, a 68\% reduction and the mean false positive rate from 0.0408 to 0.0130. The mean precision increases from 0.702 to 0.806 the largest increase in precision in the report. Mean recall falls from 0.799 to 0.681 and the mean F\textsubscript{1} drops very slightly to 0.692. Average precision is unchanged at 0.787 for both designs so the underlying scores are the same, just the decision threshold has changed.
+
+This result needs an important caveat. Trust starts at 1 and only drops on days where the mean deviation is above $\theta$ = 1.5. So a benign employee will typically have a trust score very close to 1 and hence their threshold will be closer to 0.65 than 0.5. Some of the reduction may therefore simply be because the threshold has been raised for almost everyone. I did not run a control with a single global threshold matched on recall, so this experiment does not show how much of the reduction is due to trust per se.
+
+The most poorly calibrated strategies benefit the most. The CNN F\textsubscript{1} score goes from 0.257 to 0.546, precision from 0.151 to 0.945, false positives from 83.7 to 0.4 per fold, and the LSTM F\textsubscript{1} score goes from 0.636 to 0.781, false positives from 17.6 to 4.1. They are very poorly calibrated, but the ordering is still correct. A per employee threshold is a lot better at dealing with the calibration issues than a simple fixed threshold of 0.5.
+
+F\textsubscript{1} for the trust weighted ensemble drops from 0.848 to 0.269 and recall drops to 0.163 with zero false positives. The ensemble already weights its score by trust so applying a further trust based threshold would be effectively penalising trusted staff twice. Trust should be incorporated at one point in the pipeline.
+
+\subsection{Class Imbalance Handling (E9)}
+\label{sec:8.7}
+
+All three arms have the class weighting that is inherent to each of the strategies, and they only differ in what is applied on top of that.
+
+\resultinput{tables/imbalance}
+
+\textbf{SMOTE leads to improved performance}: The mean F\textsubscript{1} goes from 0.701 to 0.750 with 11 of the 15 methods improving. Mean precision goes from 0.702 to 0.749, the mean false positive rate drops from 0.0408 to 0.0285 and the average precision goes from 0.787 to 0.810. The largest improvements are in the deep and hybrid models with the CNN-RNN hybrid improving by 0.259 and the stacking ensemble, LSTM and autoencoder-RNN hybrid all improving by 0.105 to 0.118. The tree ensembles show very little change (+0.004 for RF, +0.007 for GB, -0.007 for voting ensemble) so SMOTE does not seem to be of much benefit in this instance. Isolation forest and autoencoder are unchanged as SMOTE only creates synthetic malicious rows and both of these models are trained on benign rows only.
+
+\textbf{Under-sampling is bad for performance.} The mean F1 drops from 0.701 to 0.573 with only three of the fifteen methods actually doing any better. Recall goes up from 0.799 to 0.865 but precision drops from 0.702 to 0.502 and the false positive rate increases more than 4 fold from 0.0408 to 0.1722. Removing the benign days removes data that is essential for defining what normal behaviour is and so reduces your ability to tell the difference between a malicious event and an atypical but benign one.
+
+\subsection{Which Signals Carry the Detection (E10)}
+\label{sec:8.8}
+
+\resultinput{tables/signalImportance}
+
+On the 30-day logs, the raw binary flag for whether the employee was active outside working hours has an importance of 0.332. All 16 of the deviation features combined have an importance of 0.086. By signal type the raw daily values account for 77.5\%, peer group deviation for 10.1\%, own baseline deviation for 7.3\%, categorical attributes for 5.0\% and the trust score for 0.1\%.
+
+This needs three qualifications:
+
+\begin{enumerate}
+  \item \textbf{It is a property of the dataset:} Three of the five archetypes have activity at odd hours so the off-hours flag is pretty much the label for the majority of the positive class. On the Kaggle data it was the other way around, the temporal features gave 0.109 mean F\textsubscript{1} vs 0.007. The engineered features are redundant when the raw features are already sufficient to separate the classes and they become important when the raw features are not.
+  \item \textbf{It is a property of the model:} Permutation importance is a measure of what the model is relying on. If the random forest has found a feature that is almost sufficient on its own then there is no reason for it to be splitting on the other correlated features. If the off-hours column were removed, the random forest would very likely shift its reliance to the deviation features, this however was not tested.
+  \item \textbf{The near-zero trust score share is genuine:} It is the same as in E8, where I introduced trust as an input and saw no measurable difference. The value is in the decision rule, not in the feature matrix.
+\end{enumerate}
+\section{Discussion}
+\label{sec:9}
+
+\subsection{SQ1: What Behavioural Signals Indicate Malicious Activity?}
+\label{sec:9.1}
+
+Analysis of the individual signals shows that detection on the 30 day logs is actually based on a lot fewer features than the framework as a whole. The best performing strategy is dominated by a single raw off hours flag which accounts for about two thirds of the total importance. The raw values are more predictive than the deviation features (Section~\ref{sec:8.8}).
+
+In contrast, the Kaggle data shows the opposite. Removing the temporal layer results in a 0.109 drop in mean F\textsubscript{1} on the Kaggle data, 8 out of 9 methods have lower F\textsubscript{1}, and all 9 have lower average precision. On the 30-day logs, the effect is very small at 0.007 (Section~\ref{sec:8.4}).
+
+The two results do not conflict once each dataset is considered on its own. In my 30-day logs the anomalies are just extreme values in the raw features. In the Kaggle logs the malicious day is just unusual for that individual. You cannot capture that in a single snapshot no matter what model you use. For the insiders in my 30-day logs it is just off-hours access and raw activity volume. For the Kaggle insiders you have to look at the deviation from that individual's own baseline. Two caveats apply: signal importance was only measured on the 30-day logs, and on the Kaggle data the test removes the own-baseline, peer and trust features together, so it cannot say which of the three is responsible for the gain.
+
+\subsection{SQ2: Can a Dynamic Trust Score Reduce the Number of False Positives?}
+\label{sec:9.2}
+
+Yes, but only in one of the two designs. As a model input trust makes no difference to anything that is measurable (Section~\ref{sec:8.6}) as it is derived from the deviation features that are already in the matrix. Permutation importance confirms this, it is 0.1\%.
+
+If used as a per-employee threshold it reduces the mean false positive count by 68\% and increases the mean precision, at the expense of a drop in mean recall. The average precision is unchanged so the ranking is unaffected, just the per employee decision threshold is different. The value of that trade-off of course will depend on the relative cost of analyst time vs the cost of missing an insider. You can get both of those operational points from a single trained model by simply changing the threshold.
+
+Three cautions:
+
+\begin{enumerate}
+  \item Trust should be applied once. The trust weighted ensemble just collapses as soon as you put a trust threshold on it as the same employee gets penalised twice.
+  \item The CNN and LSTM get the biggest improvements. Their scores are very badly calibrated, but they are in the right order, so part of the improvement is due to better calibration rather than to trust itself.
+  \item The result is only on the synthetic 30 day logs and has not been separated out from just raising the threshold for everyone (Section~\ref{sec:8.6}). A control with a global threshold matched on recall, run on the Kaggle data is required before the reduction can be attributed to trust.
+\end{enumerate}
+\subsection{SQ3: Individual, Combined or Hybrid?}
+\label{sec:9.3}
+
+The literature will tell you that ensemble models beat single models~\cite{alzaabi2024}. If you look at the models under the same conditions the claim splits itself in two.
+
+\textbf{Within each dataset the individual strategy is best:} The random forest is best or tied for best on all three datasets. On the 30-day logs two of the combined strategies are statistically tied with it and on the other two datasets it significantly outperforms all of the other 14 strategies. The only exception is outside of cross-validation where it was trained on the 30-day logs and tested on Kaggle, where the best strategy is the combined CNN-RNN (F\textsubscript{1} = 0.305) and all of the transferred scores are very low (Section~\ref{sec:8.5}). As the random forest itself is composed of many trees (Section~\ref{sec:6.5}) the conclusion is probably best taken as no combination of different models beats a random forest.
+
+\textbf{The combined strategies win on average}: The combined strategy family scores for F\textsubscript{1}, precision, recall and average precision are all better on every dataset. F\textsubscript{1} is 0.768 v 0.657, 0.416 v 0.345 and 0.608 v 0.530 respectively. That said it is not true for every metric. On the single day and Kaggle data the combined family do have the higher mean FPR. The difference is in the tail. The individual strategy family have the winner but the CNN and the isolation forest are in the bottom three of every within-dataset table. The only combined strategy that has a similar level of failure is the CNN-RNN hybrid.
+
+Combining the models reduces the risk of selecting a poor performing strategy, it does not improve the maximum performance you can get. A combined strategy over the best single model is going to give you a bit less peak F\textsubscript{1}, but it gives you protection against the risk of picking a bad model.
+
+The order of the strategies is largely the same within each organisation with Random Forest, Voting Ensemble and Gradient Boosting all consistently in the top three across all three datasets. The order is not the same across the organisations though. In the generalisation experiments (Section~\ref{sec:8.5}) Random Forest drops to second worst when trained on the 30 day logs and Isolation Forest has the most consistent transferability. A cross-validated ranking only tells you which strategy is the best for that organisation's data.
+
+\subsection{Implications for Evaluation Practice}
+\label{sec:9.4}
+
+Three of the results are relevant to the way the field assesses its own methods and all of them bear out the concerns raised by the various surveys~\cite{alzaabi2024,yuan2021,kim2020}.
+
+\begin{enumerate}
+  \item \textbf{Benchmark difficulty is important:} In the earlier version of the single day corpus where all the drifting employees would switch to a different pattern at once, a single feature was enough to separate the classes. Four of the strategies got a perfect score (1.000) and 11 of the 15 scored above 0.98. In the reconstructed version of the corpus with per employee baselines, inclusion of benign busy days, gradual drift and varying degrees of drift, the same strategies now have an F\textsubscript{1} spread of 0.581. A benchmark that allows perfect scores is of little use for comparing methods.
+  \item \textbf{My 30-day logs underestimate the effect of the temporal methods:} The temporal layer had a much greater effect on the Kaggle data than it did on my 30 day logs.
+  \item \textbf{Within-dataset cross-validation overstates performance on new data:} Performance on a different dataset was less than half of the within-dataset performance, and the ranking did not survive the transfer.
+\end{enumerate}
+\section{Threats to Validity}
+\label{sec:10}
+
+\subsection{Construct Validity}
+\label{sec:10.1}
+
+All three datasets are synthetic so their labels are correct by definition and their realism is just assumed. This is the standard position in insider threat research~\cite{kim2020} as real incident data is effectively not obtainable~\cite{glasser2013}. To reduce my reliance on my own generators, I included a third-party dataset, re-ran the main comparison on it and then tested every strategy on it in the generalisation experiments. Nothing in this has been confirmed on real incident data.
+
+The Kaggle dataset is mapped via behavioural analogue, optical media burns are used as a proxy for device activity and building exits are used as a proxy for general daily activity. Email and failed logins have no analogue and are therefore set to zero, meaning detection on that dataset covers a far more restricted set of behaviours.
+
+\subsection{Internal Validity}
+\label{sec:10.2}
+
+The comparison is controlled: One feature matrix, one set of seeded folds, one decision rule and one imbalance treatment for each strategy. I have guarded against leakage at three points, and a test covers each of those:
+
+\begin{enumerate}
+  \item The rolling baseline omits the event it scores.
+  \item Resampling is carried out after the split and only on the training fold.
+  \item The preprocessor used in the generalisation experiments is fit on the training set only.
+\end{enumerate}
+The principal remaining threat is tuning. All the strategies get the same budget so it is a fair comparison, but that budget is not the budget each strategy would have had if it had been tuned in isolation. The deep models are very small and were trained for a very short time so their results are not the best they could have been.
+
+\subsection{External Validity}
+\label{sec:10.3}
+
+Populations are small in the datasets. The within-dataset Kaggle experiments oversample the malicious employees so the actual number of false positives you would see in the real world would not be the same as what you would see in those experiments. The rates and rankings do however transfer over. The generalisation experiments use the full population. The main Kaggle comparison (E3) is based on a sample of just 70 employees, of which 20 are malicious. The framework assumes you have daily summaries and that each employee has a fixed department and role. High staff turnover, lots of contractors and/or frequent role changes would be likely to damage the baseline and the peer comparison and the trust score would go down for reasons entirely unrelated to a threat.
+
+\subsection{Conclusion Validity}
+\label{sec:10.4}
+
+With ten folds the Wilcoxon test can only just reject after correction. Power remains very low, so real differences of a few F1 points are unlikely to reach significance. You would need a lot more cross-validation/repetition or a lot more datasets~\cite{demsar2006} to get any sort of firm rankings. The folds also share a lot of their training data so they are not actually independent samples and the \emph{p}-values are therefore a bit optimistic~\cite{nadeau2003}. The folds are made over employee-days rather than over employees so an employee's Monday can be used to train a model which is then tested on their Tuesday. That works for the question of whether a day is anomalous given the employee's history. It does not address the question of whether the framework can detect an employee it has never seen before. The generalisation experiments do that and their results are considerably weaker.
+
+\section{Conclusion}
+\label{sec:11}
+
+This study looked at how a framework that combines behavioural signals over time, trust modelling and controlled strategy comparison could improve the detection of insider threats. I built a 5 layer framework and ran it in 10 experiments across 3 datasets, comparing 15 different strategies on the same feature matrix, same folds and same decision rule.
+
+\subsection{Findings}
+\label{sec:11.1}
+
+\begin{enumerate}
+  \item \textbf{Looking at the behaviour over time is useful and is much more so on the Kaggle data:} The removal of the temporal and trust layers cost 0.109 mean F\textsubscript{1} on the Kaggle data. On the 30 day logs it only cost 0.007 as my 30 day logs are such that they tend to encode anomalies as very extreme values which a snapshot would have already picked up.
+  \item \textbf{Trust reduces false positives as a decision rule but only in that capacity.} As a model input it made no difference and accounted for 0.1\% of the importance. As a per-employee threshold it reduced false positives by 68\% and improved precision by over 10 points at the cost of 12 points of recall. This was all measured on the synthetic 30 day logs only, with no control that raised the global threshold.
+  \item \textbf{No combination of the strategies outperformed the individual best strategy on any of the datasets:} The random forest was the best or co-best on all three datasets. The combined strategies did better at the family level because they avoid bad failures within an individual family. Combining models is insurance against a bad choice. It is not a way to get to the best detector.
+  \item \textbf{Cross-validated performance is not a good predictor of performance on a different dataset:} The best strategy achieved 0.305 when trained on my own synthetic data and tested on Kaggle, versus 0.783 within Kaggle. The rankings of the strategies did not transfer across datasets and were different. The random forest had dropped to second worst when trained on the 30-day logs and the isolation forest was the one that transferred most consistently. This suggests that a detector should be trained and validated on data from the organisation it is meant to protect.
+  \item \textbf{SMOTE helps, under-sampling hurts:} The mean F\textsubscript{1} goes from 0.701 to 0.750 with SMOTE. It drops to 0.573 with under-sampling.
+\end{enumerate}
+\subsection{Limitations}
+\label{sec:11.2}
+
+All three datasets are synthetic and the Kaggle data has no email or authentication signals. All the strategies have the same modest training budget so the deep models are not being run to their full potential. Ten folds give very low statistical power, and the folds are not independent. The folds are over employee days so they do not test the model's ability to detect new employees. The trust, imbalance and signal importance experiments were all run on synthetic data only and the trust threshold has not been compared against a simple global threshold. Section~\ref{sec:10} goes into these limitations in more detail.
+
+\subsection{Future Work}
+\label{sec:11.3}
+
+\begin{enumerate}
+  \item Domain adaptation like training on pooled data from several organisations to check whether the generalisation gap is due to the method or to training on a single source.
+  \item A hybrid where the supervised model was in charge of the behaviour it was trained on and the anomaly-based model was in charge of unfamiliar behaviour, since anomaly detection transferred most consistently.
+  \item Testing out various decay and recovery settings for the trust layer all tuned in line with a given cost ratio, as the current settings had been fixed in advance.
+  \item A control for the trust threshold, a single global threshold matched on recall, and a repeat of the trust experiment on the Kaggle data.
+  \item Signal importance on the Kaggle data, to separate the own baseline, peer and trust features.
+  \item Validating the framework on real insider incident data, as all three datasets used here are synthetic.
+  \item A synthetic benchmark whose anomalies only become visible over a multi-day history, to give a better test of temporal methods.
+\end{enumerate}
+\bibliographystyle{ieeetr}
+{\raggedright
+\bibliography{references}}
+
+\end{document}

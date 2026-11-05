@@ -1,0 +1,30 @@
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Strategy & P & R & F1 & FPR & PR-AUC & FP \\
+\midrule
+\multicolumn{7}{l}{\textit{Individual strategies}} \\
+GNN & 0.112 & 0.465 & 0.181 & 0.0944 & 0.080 & 27,611 \\
+Isolation forest & 0.113 & 0.381 & 0.175 & 0.0768 & 0.088 & 22,450 \\
+Logistic regression & 0.082 & 0.470 & 0.140 & 0.1347 & 0.074 & 39,383 \\
+Decision tree & 0.091 & 0.121 & 0.104 & 0.0309 & 0.033 & 9,046 \\
+CNN & 0.049 & 0.825 & 0.093 & 0.4115 & 0.136 & 120,312 \\
+LSTM & 0.037 & 0.854 & 0.070 & 0.5761 & 0.058 & 168,431 \\
+Autoencoder & 0.033 & 0.955 & 0.064 & 0.7154 & 0.035 & 209,155 \\
+Random forest & 0.071 & 0.019 & 0.030 & 0.0062 & 0.074 & 1,819 \\
+SVM & 0.014 & 0.004 & 0.006 & 0.0069 & 0.071 & 2,004 \\
+\midrule
+\multicolumn{7}{l}{\textit{Combined strategies}} \\
+CNN-RNN hybrid & 0.460 & 0.228 & \textbf{0.305} & 0.0069 & 0.139 & 2,016 \\
+AE-RNN hybrid & 0.100 & 0.508 & 0.167 & 0.1176 & 0.084 & 34,382 \\
+Gradient boosting & 0.097 & 0.452 & 0.160 & 0.1080 & 0.082 & 31,575 \\
+Stacking ensemble & 0.078 & 0.489 & 0.135 & 0.1478 & 0.062 & 43,203 \\
+Trust-weighted ensemble & 0.100 & 0.168 & 0.125 & 0.0387 & 0.075 & 11,317 \\
+Voting ensemble & 0.080 & 0.124 & 0.097 & 0.0365 & 0.063 & 10,670 \\
+\bottomrule
+\end{tabular}
+\caption{Trained on the 30-day logs, tested on the full Kaggle dataset. FP is the total count.}
+\label{tab:generalise-month}
+\end{table}

@@ -1,0 +1,32 @@
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+Signal & Importance & SD \\
+\midrule
+off-hours access & 0.3321 & 0.0217 \\
+data transferred & 0.0506 & 0.0123 \\
+data transferred (vs peers) & 0.0273 & 0.0121 \\
+device activity (vs own baseline) & 0.0157 & 0.0065 \\
+data transferred (vs own baseline) & 0.0132 & 0.0109 \\
+session duration (vs peers) & 0.0093 & 0.0037 \\
+failed logins (vs peers) & 0.0090 & 0.0006 \\
+role: manager & 0.0085 & 0.0037 \\
+department: hr & 0.0060 & 0.0011 \\
+device activity (vs peers) & 0.0052 & 0.0026 \\
+department: it & 0.0044 & 0.0041 \\
+role: admin & 0.0042 & 0.0014 \\
+\midrule
+\multicolumn{3}{l}{\textit{Total importance by kind of signal}} \\
+\midrule
+Raw daily value (10 features) & 0.3852 & 77.5\% \\
+Deviation from peer group (8 features) & 0.0502 & 10.1\% \\
+Deviation from own baseline (8 features) & 0.0361 & 7.3\% \\
+Categorical attribute (11 features) & 0.0250 & 5.0\% \\
+Dynamic trust score (1 feature) & 0.0005 & 0.1\% \\
+\bottomrule
+\end{tabular}
+\caption{Permutation importance on the 30-day logs, best strategy.}
+\label{tab:signal-importance}
+\end{table}

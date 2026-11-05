@@ -1,0 +1,28 @@
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrc}
+\toprule
+Strategy & F1 & $\Delta$ vs.\ best & $p$ & Sig. \\
+\midrule
+Random forest (best) & 0.887 & n/a & n/a & n/a \\
+\midrule
+Voting ensemble & 0.873 & -0.015 & 0.3281 & no \\
+Gradient boosting & 0.872 & -0.016 & 0.3828 & no \\
+Trust-weighted ensemble & 0.848 & -0.039 & 0.0156 & yes \\
+Decision tree & 0.827 & -0.060 & 0.0059 & yes \\
+SVM & 0.803 & -0.084 & 0.0039 & yes \\
+Logistic regression & 0.784 & -0.104 & 0.0020 & yes \\
+Stacking ensemble & 0.748 & -0.140 & 0.0020 & yes \\
+AE-RNN hybrid & 0.720 & -0.168 & 0.0020 & yes \\
+LSTM & 0.636 & -0.251 & 0.0020 & yes \\
+GNN & 0.631 & -0.256 & 0.0020 & yes \\
+Autoencoder & 0.604 & -0.283 & 0.0020 & yes \\
+CNN-RNN hybrid & 0.550 & -0.337 & 0.0020 & yes \\
+Isolation forest & 0.481 & -0.407 & 0.0020 & yes \\
+CNN & 0.257 & -0.631 & 0.0020 & yes \\
+\bottomrule
+\end{tabular}
+\caption{Wilcoxon tests against the best strategy, 30-day logs (Holm-Bonferroni).}
+\label{tab:significance-month}
+\end{table}
