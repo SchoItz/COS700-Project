@@ -42,7 +42,7 @@ class DynamicTrustModel:
 
     def compute(self, df: pd.DataFrame) -> pd.DataFrame:
         if "devScore" not in df.columns:
-            raise ValueError("Expected a 'deviation_score' column; run features.temporal first.")
+            raise ValueError("Expected a 'devScore' column; run features.temporal first.")
 
         df = df.sort_values(["userId", "timestamp"]).copy()
         cfg = self.config

@@ -109,7 +109,7 @@ def evaluateStrategies(
     label: str = "",
     useTrustThresholds: bool = True,
 ) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
-    """Cross-validates every strategy; returns (summary, per_fold)."""
+    """Cross-validates every strategy; returns (summary, perFold)."""
     X, y = design.X, design.y
     strategies = buildStrategies(
         X.shape[1], includeDeep=includeDeep, trustCol=design.trustCol
@@ -354,7 +354,7 @@ def runTrustComparison(
 
     frames = []
     for variant, mode in trustVar.items():
-        report(f"[2/2] Variant '{variant}' (trust_mode={mode})")
+        report(f"[2/2] Variant '{variant}' (trustMode={mode})")
         summary, _ = evaluateStrategies(
             designMatrix(featurise(raw, trustMode=mode)), report,
             nSplits=nSplits, includeDeep=includeDeep, label=variant,

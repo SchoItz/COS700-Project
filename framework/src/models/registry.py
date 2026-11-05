@@ -44,7 +44,7 @@ def buildStrategies(
     deepEpochs: int = 12,
     trustCol: int | None = None,
 ) -> dict[str, DetectorFactory]:
-    """Returns {name: factory}. `include_deep=False` skips the torch models."""
+    """Returns {name: factory}. `includeDeep=False` skips the torch models."""
     strategies: dict[str, DetectorFactory] = {
         **classicalFactories(),
         **combinedFactories(trustCol=trustCol),

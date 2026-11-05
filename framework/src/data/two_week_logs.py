@@ -1,4 +1,4 @@
-"""Loader for the two-week dataset (`data/generated/two_week_logs/`). Not used in the report."""
+"""Loader for the two-week dataset (`data/generated/twoWeekLogs/`). Not used in the report."""
 from __future__ import annotations
 
 import pandas as pd

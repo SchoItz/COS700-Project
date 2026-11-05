@@ -1,4 +1,4 @@
-"""Data layer. Entry point: `load_dataset(name)`."""
+"""Data layer. Entry point: `loadDataset(name)`."""
 from .daily_logs import loadDailyLogs
 from .merge import mergeSources
 from .month_logs import loadMonthLogs

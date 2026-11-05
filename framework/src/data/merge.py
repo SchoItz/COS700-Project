@@ -10,7 +10,7 @@ dedupKey = ["userId", "timestamp", "eventType", "source"]
 
 def mergeSources(frames: list[pd.DataFrame]) -> pd.DataFrame:
     if not frames:
-        raise ValueError("merge_sources requires at least one DataFrame")
+        raise ValueError("mergeSources requires at least one DataFrame")
 
     for df in frames:
         missing = [c for c in reqCol if c not in df.columns]

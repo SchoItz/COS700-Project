@@ -14,7 +14,7 @@ nonFeatCol = ("userId", "timestamp", "alertThreshold")
 
 thresholdCol = "alertThreshold"
 
-trustFeat = "numeric__trust_score"
+trustFeat = "numeric__trustScore"
 
 TrustMode = Literal["none", "feature", "sensitivity"]
 
@@ -24,7 +24,7 @@ defTrustMode: TrustMode = "feature"
 def featurise(rawDf: pd.DataFrame, trustMode: TrustMode = defTrustMode) -> pd.DataFrame:
     """Runs the temporal and trust layers and keeps the z-scores.
 
-    trust_mode: "none" (no trust), "feature" (adds `trustScore`),
+    trustMode: "none" (no trust), "feature" (adds `trustScore`),
     "sensitivity" (also adds a per-row `alertThreshold`)."""
     featurised = computeDeviationFeatures(rawDf)
 
@@ -35,7 +35,7 @@ def featurise(rawDf: pd.DataFrame, trustMode: TrustMode = defTrustMode) -> pd.Da
     elif trustMode == "sensitivity":
         withTrust = DynamicTrustModel().applyAsSensitivity(featurised)
     else:
-        raise ValueError(f"Unknown trust_mode '{trustMode}'")
+        raise ValueError(f"Unknown trustMode '{trustMode}'")
 
     drop = [c for c in withTrust.columns if c.endswith(("_baselineMean", "_baselineStd"))]
     drop.append("devScore")

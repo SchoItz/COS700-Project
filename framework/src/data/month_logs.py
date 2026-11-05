@@ -1,4 +1,4 @@
-"""Loader for the 30-day dataset (`data/generated/month_logs/`)."""
+"""Loader for the 30-day dataset (`data/generated/monthLogs/`)."""
 from __future__ import annotations
 
 import pandas as pd

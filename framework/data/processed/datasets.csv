@@ -1,0 +1,4 @@
+dataset,title,origin,generator,rows,employees,positiveRows,positiveRate
+month,30-day logs,Synthetic,Own generator,3000,100,172,0.05733333333333333
+singleDay,Single-day logs,Synthetic,Own generator,14000,100,700,0.05
+rawInsiderThreat,Kaggle insider threat,Synthetic,Third party,299880,1666,7521,0.025080032012805124

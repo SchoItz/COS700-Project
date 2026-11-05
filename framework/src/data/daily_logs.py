@@ -44,7 +44,7 @@ def _driftOnsets(paths: list[Path]) -> pd.Series:
 def _employeeWindows(
     paths: list[Path], nWeeks: int, seed: int
 ) -> tuple[pd.Series, pd.Series]:
-    """Per-employee (first_week, last_week) window."""
+    """Per-employee (firstWeek, lastWeek) window."""
     frames = [pd.read_csv(p, usecols=["employee_id", "weekNumber"]) for p in paths]
     index = pd.concat(frames, ignore_index=True)
     allEmp = pd.Index(sorted(index["employee_id"].unique()), name="employee_id")
@@ -67,7 +67,7 @@ def _employeeWindows(
 
 
 def loadDailyLogs(nWeeks: int = deftWeeks, seed: int = SEED) -> pd.DataFrame:
-    """Loads the windowed corpus in the common schema. `n_weeks=0` loads all weeks."""
+    """Loads the windowed corpus in the common schema. `nWeeks=0` loads all weeks."""
     paths = _csvPaths()
 
     if nWeeks and nWeeks > 0:

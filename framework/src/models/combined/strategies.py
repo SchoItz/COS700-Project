@@ -57,7 +57,7 @@ class TrustWeightedEnsemble(ScoreThresholdMixin):
     """Soft voting with scores scaled by `1 - gain * trust`.
 
     `trustCol` is the trust column's index; it is mapped back to [0, 1] with
-    training statistics. With `trust_col=None` this is plain soft voting."""
+    training statistics. With `trustCol=None` this is plain soft voting."""
 
     name = "trustWeightedEnsemble"
 
