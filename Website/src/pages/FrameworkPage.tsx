@@ -79,7 +79,7 @@ function DataLayer() {
         <>
           <p className="layer-lead">
             Load every source, map it onto one common schema, and clean it so that synthetic and
-            real-world data flow through the same downstream layers unchanged.
+            third-party data flow through the same downstream layers unchanged.
           </p>
           <h3>The common schema</h3>
           <p>

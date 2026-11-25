@@ -26,7 +26,7 @@ export default function DataPage() {
     <>
       <PageHeader
         title="Data"
-        lead="Three datasets of differing difficulty and origin: two synthetic and one real-world. All are mapped onto the framework's common schema before anything else happens."
+        lead="Three datasets of differing difficulty and origin: all synthetic, two from my own generators and one from a third party. All are mapped onto the framework's common schema before anything else happens."
       />
       <ApiStatus what="the datasets" loading={loading} error={error} />
       {table?.available && (
@@ -100,7 +100,7 @@ export default function DataPage() {
       </section>
 
       <section className="panel">
-        <h2>Kaggle insider-threat dataset (real-world)</h2>
+        <h2>Kaggle insider-threat dataset (synthetic, third party)</h2>
         <p>
           Daily records for employees in a classified environment, covering physical access,
           printing, optical-media burning and travel. It is mapped onto the schema by behavioural

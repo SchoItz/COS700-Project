@@ -37,9 +37,9 @@ export const EXPERIMENT_TITLES: Record<string, string> = {
 export const TAKEAWAYS: Record<string, string> = {
   E1: "The random forest is the best strategy. Combined strategies have the better average, but none beat it.",
   E2: "The hardest dataset, with gradual drift. The random forest is again best, and combined strategies again have the better average.",
-  E3: "On real-world data the random forest is still best; combined strategies again lift the average, not the top score.",
+  E3: "On the Kaggle data the random forest is still best; combined strategies again lift the average, not the top score.",
   E4: "Multi-day history adds very little here: the synthetic anomalies are already extreme in their raw values.",
-  E5: "On real data history clearly helps: mean F1 rises and almost every strategy improves once it can compare a day with that employee's own past.",
+  E5: "On the Kaggle data history clearly helps: mean F1 rises and almost every strategy improves once it can compare a day with that employee's own past.",
   E6: "Trained on synthetic data and tested on Kaggle, every score collapses and the ranking changes almost completely; the random forest falls near the bottom.",
   E7: "The same transfer test from single-day data: scores stay low, and the isolation forest, trained on benign data only, transfers best.",
   E8: "Trust as a model input changes nothing. Used as a per-employee alert threshold, it cuts false positives sharply, at some cost in recall.",

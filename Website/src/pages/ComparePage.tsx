@@ -15,7 +15,7 @@ const LOWER_IS_BETTER = new Set(["false_positive_rate"]);
 const SETTING_NOTES: Record<string, string> = {
   E1: "Cross-validated on the 30-day logs.",
   E2: "Cross-validated on the single-day logs.",
-  E3: "Cross-validated on the real-world Kaggle data.",
+  E3: "Cross-validated on the third-party synthetic Kaggle data.",
   E6: "Trained on the 30-day logs, tested on the full Kaggle dataset it never saw.",
   E7: "Trained on the single-day logs, tested on the full Kaggle dataset it never saw.",
 };

@@ -150,7 +150,7 @@ export default function Overview() {
             <p className="poster-tight">
               <strong className="poster-label">Aim:</strong>
             </p>
-            <p>Build a five-layer framework and test it fairly on synthetic and real data:</p>
+            <p>Build a five-layer framework and test it fairly on three synthetic datasets:</p>
             <ul className="poster-plain">
               <li>
                 <SQ n={1} />
@@ -201,7 +201,7 @@ export default function Overview() {
               </li>
               <li>
                 <strong>Kaggle:</strong>{" "}
-                {ds("raw_insider_threat")?.rows?.toLocaleString() ?? "299,880"} real-world
+                {ds("raw_insider_threat")?.rows?.toLocaleString() ?? "299,880"} third-party synthetic
                 employee-days (1,666 employees over 180 days)
               </li>
             </ul>
@@ -220,11 +220,11 @@ export default function Overview() {
           {/* ---- Column 2: Results: Time and trust ---- */}
           <div className="poster-col fill">
             <Box title="Results: Time and trust" actions={[{ to: "/results", label: "Results" }]}>
-              <Finding sq={1}>History helps most on real data</Finding>
+              <Finding sq={1}>History helps most on the Kaggle data</Finding>
               {abl && (
                 <>
                   <div className="poster-stats">
-                    <BigStat value={`+${f3(abl.kaggle.gain)}`} label="Mean F1 gain, real-world Kaggle" />
+                    <BigStat value={`+${f3(abl.kaggle.gain)}`} label="Mean F1 gain, Kaggle" />
                     <BigStat value={`+${f3(abl.month.gain)}`} label="Mean F1 gain, synthetic data" />
                   </div>
                   <ChartTitle>Mean F1 of nine strategies</ChartTitle>
@@ -410,7 +410,7 @@ export default function Overview() {
               <li>
                 <SQ n={1} />
                 <strong>History beats snapshots.</strong> Multi-day baselines added{" "}
-                {abl ? f3(abl.kaggle.gain) : "…"} mean F1 on real data.
+                {abl ? f3(abl.kaggle.gain) : "…"} mean F1 on the Kaggle data.
               </li>
               <li>
                 <SQ n={1} />
@@ -439,7 +439,7 @@ export default function Overview() {
               <strong>Limitations:</strong>
               <ul>
                 <li>Two of three datasets are synthetic</li>
-                <li>The real data has no email or login signals</li>
+                <li>The Kaggle data has no email or login signals</li>
                 <li>Every model had the same small training budget</li>
               </ul>
               <strong>Future work:</strong>
@@ -457,7 +457,7 @@ export default function Overview() {
               research.
             </p>
             <p>Department of Computer Science, University of Pretoria.</p>
-            <p>Real-world data: Kaggle insider-threat dataset (classified environment).</p>
+            <p>Third-party synthetic data: Kaggle insider-threat dataset (classified environment).</p>
           </Box>
 
           <Box title="Contact">

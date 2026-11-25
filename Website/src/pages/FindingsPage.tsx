@@ -132,7 +132,7 @@ export default function FindingsPage() {
         )}
         <Reading>
           The answer depends on the dataset. Where anomalies are extreme in absolute terms, raw
-          values already separate the classes and history adds little; on real data, what marks a
+          values already separate the classes and history adds little; on the Kaggle data, what marks a
           malicious day is being extreme <em>for that employee</em>, which only a per-employee
           baseline can express.
         </Reading>
